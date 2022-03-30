@@ -3,9 +3,9 @@
   
 现在只是一个简单的登录界面......  
 [![](https://github.com/jtl1207/csharp-class-libraries/blob/main/%E5%9B%BE%E7%89%87/%E6%89%8B%E6%9C%BA%E4%BB%A4%E7%89%8C.png)](https://github.com/jtl1207/csharp-class-libraries/blob/main/%E5%9B%BE%E7%89%87/%E6%89%8B%E6%9C%BA%E4%BB%A4%E7%89%8C.png)
-#####DB类
-一个基于消息队列的异步数据库操作封装
-使用方法
+##### DB类  
+一个基于消息队列的异步数据库操作封装  
+使用方法  
 
 
     Dbworking.conStr = @"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=|DataDirectory|\Data.accdb";//设置连接字符串
