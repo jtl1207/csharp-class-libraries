@@ -13,12 +13,12 @@ DbStart DbStart = new DbStart();//开始
 	
 User = 123;
 Password = 456;
-string key = "注册" + User + DateTime.Now.ToString(); //设置唯一key,用于验证,可以不要
 	
 DbRange DbRange = new DbRange();
 DbReturn DbReturn = new DbReturn();
 DbReturn.Overtime = 500;//设置超时时间
-	
+
+string key = "注册" + User + DateTime.Now.ToString(); //设置唯一key,用于验证
 DbRange.Search_DataTable("Account", "user", User, key);//向消息队列发送请求
 DataTable dt = DbReturn.Return_datatable(key);//接收返回,key用于验证
 内置部分增删改查,和大部分返回类型
