@@ -24,6 +24,7 @@ namespace 手机令牌
         {
             Pic_load();
             Threading_Load();
+            Dbworking.conStr = @"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=|DataDirectory|\Data.accdb";
             DbStart DbStart = new DbStart();
         }
         private void Threading_Load()

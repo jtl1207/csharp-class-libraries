@@ -12,10 +12,9 @@ namespace 手机令牌
     {
         public DbStart()
         {
-            Debug.WriteLine(111);
             Dbresult.start = true;
-            Dbworking.start = true;
             Dbupdate.start = true;
+            Dbworking.Connect();
         }
     }
     struct Info//传入消息队列的参数
@@ -173,7 +172,7 @@ namespace 手机令牌
     }
     public class DbReturn//等待返回数据,超时抛出异常,请注意回收
     {
-        static int Overtime = 1000;
+        static public int Overtime = 1000;
         public DataTable Return_datatable(string key)//返回DataTable
         {
             DateTime beforDT = System.DateTime.Now;
@@ -290,24 +289,19 @@ namespace 手机令牌
 
         }
     }
-    static partial class Dbworking
+    static class Dbworking// 数据库处理线程
     {
-        // 数据库处理
-        static public bool start;
         static ulong Conn_num = new ulong();//操作唯一ID
-        static public Queue Database_list = new Queue();//消息队列
-        static public Queue Feedback_queue = new Queue();//返回队列,用于自动判断
-        static public ArrayList Feedback_list = new ArrayList();//返回数组,用于手动接收数据
-        static string conStr = @"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=|DataDirectory|\Data.accdb";
-        static OleDbConnection Conn = new OleDbConnection(conStr);
-        static Dbworking()
-        {
-            Threading_Load();
-        }
-        static void Threading_Load()
+        static internal Queue Database_list = new Queue();//消息队列
+        static internal Queue Feedback_queue = new Queue();//返回队列,用于自动判断
+        static internal ArrayList Feedback_list = new ArrayList();//返回数组,用于手动接收数据
+        static public string conStr = @"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=|DataDirectory|\Data.accdb";
+        static OleDbConnection Conn;
+        static internal void Connect()
         {
             try
             {
+                Conn = new OleDbConnection(conStr);
                 Conn.Open();
                 Thread t_queue = new Thread(new ThreadStart(Handling));
                 t_queue.IsBackground = true;
@@ -421,7 +415,7 @@ namespace 手机令牌
     }
     static partial class Dbupdate//界面更新用
     {
-        static public bool start;
+        static internal bool start;
         static public bool Account = true;
         static public int Account_done = 0;
         static Dbupdate()
@@ -445,7 +439,7 @@ namespace 手机令牌
     }
     static partial class Dbresult//其他输出处理
     {
-        static public bool start;
+        static internal bool start;
         static Dbresult()
         {
             Threading_Load();
