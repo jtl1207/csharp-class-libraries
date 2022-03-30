@@ -1,6 +1,8 @@
 ﻿using Google.Authenticator;
 using QRCoder;
 using System;
+using System.Data;
+using System.Data.OleDb;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -14,7 +16,6 @@ namespace 手机令牌
         public Form1()
         {
             InitializeComponent();
-            //线程安全是个坑
             CheckForIllegalCrossThreadCalls = false;
             DevExpress.Data.CurrencyDataController.DisableThreadingProblemsDetection = true;
             xtraTabControl1.SelectedTabPageIndex = 1;
@@ -57,25 +58,6 @@ namespace 手机令牌
                 }
                 Thread.Sleep(1);
             }
-        }
-        public void cs()
-        {
-            TwoFactorAuthenticator tfa = new TwoFactorAuthenticator();
-            var setupInfo = tfa.GenerateSetupCode("手机令牌", "xyz", "xyz", true,3);
-
-            string qrCodeImageUrl = setupInfo.QrCodeSetupImageUrl;
-            string manualEntrySetupCode = setupInfo.ManualEntryKey;
-
-
-            label13.Text = manualEntrySetupCode;
-
-            var base64 = qrCodeImageUrl.Replace("data:image/png;base64,", "");
-            byte[] bytes = Convert.FromBase64String(base64);
-            MemoryStream memStream = new MemoryStream(bytes);
-            pictureBox2.Image = Image.FromStream(memStream);
-            pictureBox2.Show();
-            pictureBox2.Refresh();
-
         }
         public void Pic_load()
         {
@@ -138,7 +120,42 @@ namespace 手机令牌
 
         private void button1_Click(object sender, EventArgs e)
         {
+            if (!Registration)
+            {
+                string user = textBox1.Text;
+                string password = textBox2.Text;
+                string key = "登录" + User + DateTime.Now.ToString();
+                DbRange DbRange = new DbRange();
+                DbReturn DbReturn = new DbReturn();
 
+                DbRange.Search_DataTable("Account", "user", user, key);
+                DataTable datatable = DbReturn.Return_datatable(key);
+
+                if (datatable.Rows.Count==1)
+                {
+                    string password_2 = datatable.Rows[0][2].ToString();
+                    string Key_2 = datatable.Rows[0][3].ToString();
+
+                    if (password_2 == password)
+                    {
+                        if (Key_2 != "")
+                        {
+                            Form2 form2 = new Form2(Key_2);
+                            if (form2.ShowDialog() != DialogResult.OK)
+                            {
+                                return;
+                            }
+                        }
+                        MessageBox.Show("登录成功", "提示");
+                        return;
+                    }
+                }
+                MessageBox.Show("用户名或密码错误", "提示");
+            }
+            else
+            {
+                MessageBox.Show("手机令牌未验证", "提示");
+            }
         }
 
         private void textBox4_KeyPress(object sender, KeyPressEventArgs e)
@@ -173,24 +190,115 @@ namespace 手机令牌
             }
         }
 
+        static bool Registration = false;
+        static string User, Password, Key;
+
+        private void button7_Click(object sender, EventArgs e)
+        {
+            Registration = false;
+            xtraTabControl1.SelectedTabPageIndex = 1;
+            MessageBox.Show("注册取消", "提示");
+        }
+
         private void button2_Click(object sender, EventArgs e)
         {
+            if (Registration)
+            {
+                MessageBox.Show("手机令牌未验证", "提示");
+                return;
+            }
+            User = textBox4.Text;
+            Password = textBox3.Text;
+            string key = "注册" + User + DateTime.Now.ToString();
             DbRange DbRange = new DbRange();
-            
-            string user = textBox4.Text;
-            string password = textBox3.Text;
-            string Key = "注册" + user+ DateTime.Now.ToString();
+            DbReturn DbReturn = new DbReturn();
 
             DateTime beforDT = System.DateTime.Now;
-            DbRange.Search_Reader("Account", "user", user, Key);
+            
+            DbRange.Search_DataTable("Account", "user", User, key);
+            bool stop = DbReturn.Return_datatable_bool(key);
 
-            DbReturn DbReturn = new DbReturn();
-            DbReturn.Return_bool(Key);
+            if (stop)
+            {
+                DateTime afterDT = System.DateTime.Now;
+                TimeSpan ts = afterDT.Subtract(beforDT);
+                MessageBox.Show("用户已存在\n共"+ts.TotalMilliseconds+"ms", "提示");
+            }
+            else
+            {
+                key = "注册" + User + DateTime.Now.ToString();
+                string lists, values;
+                if (checkBox1.Checked)
+                {
+                    Registration = true;
 
-            DateTime afterDT = System.DateTime.Now;
-            TimeSpan ts = afterDT.Subtract(beforDT);
-            Debug.WriteLine("总共花费{0}ms.", ts.TotalMilliseconds);
+                    Key = Guid.NewGuid().ToString().Replace("-", "").Substring(0, 10);
 
+                    TwoFactorAuthenticator tfA = new TwoFactorAuthenticator();
+                    var setupCode = tfA.GenerateSetupCode("手机令牌", User, Key, false, 3);
+
+                    string qrCodeImageUrl = setupCode.QrCodeSetupImageUrl;
+                    string manualEntrySetupCode = setupCode.ManualEntryKey;
+
+                    label14.Text = User;
+                    label13.Text = manualEntrySetupCode;
+
+                    var base64 = qrCodeImageUrl.Replace("data:image/png;base64,", "");
+                    byte[] bytes = Convert.FromBase64String(base64);
+                    MemoryStream memStream = new MemoryStream(bytes);
+                    pictureBox2.Image = Image.FromStream(memStream);
+                    pictureBox2.Show();
+                    pictureBox2.Refresh();
+
+                    xtraTabControl1.SelectedTabPageIndex = 0;
+                }
+                else
+                {
+                    lists = "[user], [password]";
+                    values = $"'{User}', '{Password}'";
+                    DbRange.Add_Int("Account", lists, values, key);
+                    int Return = DbReturn.Return_int(key);
+
+                    DateTime afterDT = System.DateTime.Now;
+                    TimeSpan ts = afterDT.Subtract(beforDT);
+                    if (Return == 1)
+                    {
+                        MessageBox.Show("用户注册成功\n共" + ts.TotalMilliseconds + "ms", "提示");
+                    }
+                }
+            }
+        }
+
+        private void button6_Click(object sender, EventArgs e)
+        {
+            TwoFactorAuthenticator tfa = new TwoFactorAuthenticator();
+            bool result = tfa.ValidateTwoFactorPIN(Key, textBox6.Text);
+
+            if (result)
+            {
+                string lists = "[user], [password], authenticator";
+                string values = $"'{User}', '{Password}', '{Key}'";
+
+                DateTime beforDT = System.DateTime.Now;
+                string key = "注册" + User + DateTime.Now.ToString();
+                DbRange DbRange = new DbRange();
+                DbReturn DbReturn = new DbReturn();
+                DbRange.Add_Int("Account", lists, values, key);
+                int Return = DbReturn.Return_int(key);
+
+                DateTime afterDT = System.DateTime.Now;
+                TimeSpan ts = afterDT.Subtract(beforDT);
+                if (Return == 1)
+                {
+                    MessageBox.Show("用户注册成功\n共" + ts.TotalMilliseconds + "ms", "提示");
+                    xtraTabControl1.SelectedTabPageIndex = 1;
+                    Registration = false;
+                }
+            }
+            else
+            {
+                MessageBox.Show("手机令牌错误", "提示");
+            }
         }
     }
 }
